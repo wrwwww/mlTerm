@@ -3,6 +3,7 @@ use gpui_component::*;
 use my_gpui_app::app::AppRoot;
 
 fn main() {
+    env_logger::init();
     let app = gpui_platform::application().with_assets(gpui_component_assets::Assets);
 
     app.run(move |cx| {

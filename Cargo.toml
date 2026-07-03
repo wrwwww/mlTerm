@@ -13,3 +13,15 @@ gpui-component = { git = "https://github.com/longbridge/gpui-component" }
 # 可选：使用内置默认资源
 gpui-component-assets = { git = "https://github.com/longbridge/gpui-component" }
 anyhow = "1.0"
+log = "0.4.33"
+env_logger = "0.11.11"
+serde = "1.0.228"
+serde_json = "1.0.150"
+tokio = "1.52.3"
+futures = "0.3.32"
+async-ssh2 = "0.1.2-beta"
+vte = "0.15.0"
+termion = "4.0.6"
+regex = "1.12.4"
+dirs = "6.0.0"
+palette = "0.7.6"
