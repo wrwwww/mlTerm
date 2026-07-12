@@ -2,6 +2,7 @@ mod actions;
 pub mod application;
 mod bootstrap;
 mod commands;
+pub mod config;
 mod logger;
 mod resources;
 mod settings;

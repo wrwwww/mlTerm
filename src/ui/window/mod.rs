@@ -1,5 +1,5 @@
-mod command_palette;
-mod main_window;
-mod side_bar;
-mod status_bar;
-mod title_bar;
+pub mod command_palette;
+pub mod main_window;
+pub mod side_bar;
+pub mod status_bar;
+pub mod title_bar;

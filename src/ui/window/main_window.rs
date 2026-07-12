@@ -1,86 +1,89 @@
 use gpui::*;
 
-use crate::gui::main_window::MainWindow;
-use crate::infrastructure::event_loop::EventLoop;
-use crate::models::session_config::SessionConfig;
-use crate::terminal::session_manager::SessionManager;
-use crate::{
-    appbar::AppBar, components::splitter, menus::AppMenuBar, sidebar::Sidebar, tabbar::TabBar,
-    terminal::TerminalView,
-};
 use anyhow::Result;
+use gpui_component::Root;
 use log::{debug, info};
 use std::sync::Arc;
-pub struct AppState {
-    pub layout: LayoutState,
-    pub sidebar: SidebarState,
-    pub splitter: SplitterState,
-    // pub tabs: TabsState,
-    // pub terminal: TerminalState,
-}
+
+use crate::{
+    app::config::{AppConfig, ConfigManager},
+    models::SshModels,
+    ui::{
+        components::splitter::{Splitter, SplitterDragHandle},
+        terminal::terminal_view::TerminalView,
+        widgets::TabBar,
+        window::{side_bar::Sidebar, status_bar::AppBar, title_bar::AppMenuBar},
+    },
+};
+
 pub struct LayoutState {
     pub sidebar_width: f32,
     pub splitter_position: f32,
 }
+
 pub struct SidebarState {
     pub collapsed: bool,
     pub active_session: Option<String>,
 }
-pub struct SplitterState {
-    pub dragging: bool,
-    pub hover: bool,
-}
-// pub struct TabsState {
-//     pub active: usize,
-//     pub tabs: Vec<Tab>,
-// }
-// pub struct TerminalState {
-//     pub buffers: Vec<Buffer>,
-//     pub cursor: Cursor,
-// }
+
 pub struct AppRoot {
     sidebar: Entity<Sidebar>,
     tabs: Entity<TabBar>,
     terminal: Entity<TerminalView>,
     appbar: Entity<AppBar>,
-    state: Entity<AppState>,
     menus: Entity<AppMenuBar>,
+    splitter: Entity<Splitter>,
+    // config: Arc<AppConfig>,
+    state: Entity<AppState>,
+    ssh_model: Entity<SshModels>,
 }
-impl AppRoot {
-    pub fn new(window: &Window, cx: &mut App) -> Self {
+pub struct AppState {
+    pub layout: LayoutState,
+    pub sidebar: SidebarState,
+    pub config_manager: ConfigManager,
+}
+
+impl AppState {
+    pub fn new(cx: &mut Context<'_, AppState>, config_manager: ConfigManager) -> Self {
         Self {
-            sidebar: cx.new(|cx| Sidebar::new(cx)),
-            tabs: cx.new(|cx| TabBar::new(cx)),
-            terminal: cx.new(|cx| TerminalView::new(cx)),
-            appbar: cx.new(|cx| AppBar::new(cx)),
-            state: cx.new(|cx| AppState {
-                layout: LayoutState {
-                    sidebar_width: 240.0,
-                    splitter_position: 0.0,
-                },
-                sidebar: SidebarState {
-                    collapsed: false,
-                    active_session: None,
-                },
-                splitter: SplitterState {
-                    dragging: false,
-                    hover: false,
-                },
-                // tabs: TabsState {
-                //     active: 0,
-                //     tabs: Vec::new(),
-                // },
-                // terminal: TerminalState {
-                //     buffers: Vec::new(),
-                //     cursor: Cursor::default(),
-                // },
-            }),
-            menus: cx.new(|cx| AppMenuBar::new(cx)),
+            config_manager,
+            layout: LayoutState {
+                sidebar_width: 240.0,
+                splitter_position: 0.0,
+            },
+            sidebar: SidebarState {
+                collapsed: false,
+                active_session: None,
+            },
         }
     }
 }
+impl AppRoot {
+    pub fn new(window: &mut Window, cx: &mut App, config_manager: ConfigManager) -> Self {
+        let initial_config = config_manager.get_config();
+        let config = initial_config.clone();
+        let state = cx.new(|cx| AppState::new(cx, config_manager));
+        Self {
+            sidebar: cx.new(|cx| Sidebar::new(cx)),
+            tabs: cx.new(|cx| TabBar::new(cx)),
+            terminal: cx.new(|cx| TerminalView::new(window, cx, state.clone())),
+            appbar: cx.new(|cx| AppBar::new(cx)),
+            ssh_model: cx.new(|cx| SshModels::new(cx)),
+            state,
+            menus: cx.new(|cx| AppMenuBar::new(cx)),
+            splitter: cx.new(|cx| Splitter::new()),
+            // config: config,
+        }
+    }
+}
+
 impl Render for AppRoot {
-    fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        let dialog_layer = Root::render_dialog_layer(window, cx);
+        let sidebar_width = self.state.read(cx).layout.sidebar_width;
+        let drag_state = self.state.clone();
+        let drop_state = self.state.clone();
+
         div()
             .size_full()
             .flex()
@@ -93,22 +96,42 @@ impl Render for AppRoot {
                     .h_full()
                     .flex()
                     .flex_row()
+                    .on_drag_move::<SplitterDragHandle>(move |event, _window, app| {
+                        let new_width = (event.event.position.x.as_f32()
+                            - event.bounds.left().as_f32())
+                        .clamp(180.0, 560.0);
+
+                        drag_state.update(app, |app_state, cx| {
+                            app_state.layout.sidebar_width = new_width;
+                            cx.notify();
+                        });
+                    })
+                    .on_drop::<SplitterDragHandle>(move |_, _window, app| {
+                        drop_state.update(app, |app_state, cx| {
+                            app_state.layout.splitter_position = app_state.layout.sidebar_width;
+                            cx.notify();
+                        });
+                    })
                     .child(
-                        // 左侧 session tree
-                        div().w(px(240.0)).h_full().child(self.sidebar.clone()),
+                        div()
+                            .w(px(sidebar_width))
+                            .h_full()
+                            .flex_shrink_0()
+                            .child(self.sidebar.clone()),
                     )
-                    // .child()
+                    .child(self.splitter.clone())
                     .child(
-                        // 右侧 main
                         div()
                             .flex()
                             .flex_col()
                             .flex_1()
+                            .min_w_0()
                             .child(div().h(px(36.0)))
                             .child(div().child(self.tabs.clone()))
                             .child(div().flex_1().child(div().child(self.terminal.clone()))),
                     ),
             )
+            .children(dialog_layer)
             .flex_auto()
     }
 }

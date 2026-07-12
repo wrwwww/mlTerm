@@ -1,8 +1,16 @@
-use gpui::*;
-use gpui_component::*;
-use my_gpui_app::app::AppRoot;
+use log::info;
+mod actions;
 mod app;
-mod ui;
+mod events;
+mod models;
+mod platform;
+mod protocol;
+mod services;
+mod state;
+mod terminal;
+pub mod ui;
+mod utils;
+mod workspace;
 use app::*;
 
 fn main() -> anyhow::Result<()> {

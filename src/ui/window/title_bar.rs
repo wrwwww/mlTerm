@@ -20,17 +20,22 @@ impl Render for AppMenuBar {
             .child(
                 Button::new("menu-btn1")
                     .text()
+                    .p(px(2.0))
                     .label("session")
                     .dropdown_menu(|menu, window, cx| {
                         menu.menu("新建会话", Box::new(ClosePanel))
                             .menu("Option 2", Box::new(ClosePanel))
                     }),
             )
-            .child(Button::new("menu-btn2").text().label("edit").dropdown_menu(
-                |menu, window, cx| {
-                    menu.menu("Option 1", Box::new(ClosePanel))
-                        .menu("Option 2", Box::new(ClosePanel))
-                },
-            ))
+            .child(
+                Button::new("menu-btn2")
+                    .text()
+                    .p(px(2.0))
+                    .label("edit")
+                    .dropdown_menu(|menu, window, cx| {
+                        menu.menu("Option 1", Box::new(ClosePanel))
+                            .menu("Option 2", Box::new(ClosePanel))
+                    }),
+            )
     }
 }
