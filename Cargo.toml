@@ -28,3 +28,6 @@ toml = "1.1.2"
 ssh2 = "0.9.6"
 notify = "8.2.0"
 
+[build-dependencies]
+
+winresource = "0.1.31"
