@@ -1,22 +1,28 @@
 use gpui::{prelude::FluentBuilder, *};
 
+use crate::models::layout_model::LayoutModel;
+
 #[derive(Clone, Debug)]
-pub struct Splitter;
+pub struct Splitter {
+    pub layout_model: Entity<LayoutModel>,
+    pub hovered: Entity<bool>,
+}
 
 #[derive(Clone, Debug)]
 pub struct SplitterDragHandle;
 
 impl Splitter {
-    pub fn new() -> Self {
-        Self
+    pub fn new(cx: &mut Context<Self>, layout_model: Entity<LayoutModel>) -> Self {
+        Self {
+            layout_model,
+            hovered: cx.new(|_| false),
+        }
     }
 }
 
 impl Render for Splitter {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
-        let hovered = window.use_state(cx, |_window, _cx| false);
-        let dragging = window.use_state(cx, |_window, _cx| false);
-        let active = *hovered.read(cx) || *dragging.read(cx);
+        let active = *self.hovered.read(cx) || self.layout_model.read(cx).dragging_splitter;
 
         div()
             .id("splitter")
@@ -33,27 +39,37 @@ impl Render for Splitter {
                     .top_0()
                     .bottom_0()
                     .w_1()
+                    .bg(rgba(0x00000000))
                     .cursor_col_resize()
                     .block_mouse_except_scroll()
                     .when(active, |style| style.bg(rgb(0x60a5fa)))
-                    .when(!active, |style| style.bg(rgba(0x00000000)))
+                    // .when(!active, |style| style.bg(rgba(0x00000000)))
                     .on_hover({
-                        let hovered = hovered.clone();
+                        // let hovered = hovered.clone();
+                        let state = self.hovered.clone();
                         move |&is_hovered, _, cx| {
-                            hovered.write(cx, is_hovered);
+                            state.update(cx, |t, cx| {
+                                *t = is_hovered;
+                            })
+                            // hovered.write(cx, is_hovered);
                         }
                     })
                     .on_drag(SplitterDragHandle, {
-                        let dragging = dragging.clone();
+                        let state = self.layout_model.clone();
                         move |_, _, _, cx| {
-                            dragging.write(cx, true);
+                            // dragging.write(cx, true);
+                            // cx.new(|_| Empty)
+                            state.update(cx, |state, cx| {
+                                state.dragging_bottom_splitter = true;
+                                cx.notify();
+                            });
                             cx.new(|_| Empty)
                         }
                     })
                     .on_drop::<SplitterDragHandle>({
-                        let dragging = dragging.clone();
+                        // let dragging = dragging.clone();
                         move |_, _, cx| {
-                            dragging.write(cx, false);
+                            // dragging.write(cx, false);
                         }
                     }),
             )

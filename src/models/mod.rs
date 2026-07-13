@@ -1,6 +1,7 @@
 use gpui::*;
 use gpui_component::{button::Button, *};
 
+pub mod layout_model;
 mod profile;
 mod session_config;
 mod theme;

@@ -7,7 +7,7 @@ use std::sync::Arc;
 
 use crate::{
     app::config::{AppConfig, ConfigManager},
-    models::SshModels,
+    models::{SshModels, layout_model::LayoutModel},
     ui::{
         components::splitter::{Splitter, SplitterDragHandle},
         terminal::terminal_view::TerminalView,
@@ -36,6 +36,7 @@ pub struct AppRoot {
     // config: Arc<AppConfig>,
     state: Entity<AppState>,
     ssh_model: Entity<SshModels>,
+    layout_model: Entity<LayoutModel>,
 }
 pub struct AppState {
     pub layout: LayoutState,
@@ -63,6 +64,7 @@ impl AppRoot {
         let initial_config = config_manager.get_config();
         let config = initial_config.clone();
         let state = cx.new(|cx| AppState::new(cx, config_manager));
+        let layout_model = cx.new(|cx| LayoutModel::default());
         Self {
             sidebar: cx.new(|cx| Sidebar::new(window, cx)),
             tabs: cx.new(|cx| TabBar::new(cx)),
@@ -71,7 +73,8 @@ impl AppRoot {
             ssh_model: cx.new(|cx| SshModels::new(cx)),
             state,
             menus: cx.new(|cx| AppMenuBar::new(cx)),
-            splitter: cx.new(|cx| Splitter::new()),
+            splitter: cx.new(|cx| Splitter::new(cx, layout_model.clone())),
+            layout_model,
             // config: config,
         }
     }
@@ -96,15 +99,26 @@ impl Render for AppRoot {
                     .h_full()
                     .flex()
                     .flex_row()
-                    .on_drag_move::<SplitterDragHandle>(move |event, _window, app| {
-                        let new_width = (event.event.position.x.as_f32()
-                            - event.bounds.left().as_f32())
-                        .clamp(180.0, 560.0);
+                    .on_drag_move::<SplitterDragHandle>({
+                        let state = self.layout_model.clone();
+                        move |event, _window, app| {
+                            state.update(cx, |state, cx| {
+                                state.layout.sidebar_width = (event.event.position.x.as_f32()
+                                    - event.bounds.left().as_f32())
+                                .clamp(180., 560.);
 
-                        drag_state.update(app, |app_state, cx| {
-                            app_state.layout.sidebar_width = new_width;
-                            cx.notify();
-                        });
+                                cx.notify();
+                            });
+
+                            let new_width = (event.event.position.x.as_f32()
+                                - event.bounds.left().as_f32())
+                            .clamp(180.0, 560.0);
+
+                            drag_state.update(app, |app_state, cx| {
+                                app_state.layout.sidebar_width = new_width;
+                                cx.notify();
+                            });
+                        }
                     })
                     .on_drop::<SplitterDragHandle>(move |_, _window, app| {
                         drop_state.update(app, |app_state, cx| {
