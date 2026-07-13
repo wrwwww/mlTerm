@@ -21,23 +21,22 @@ impl Render for Splitter {
         div()
             .id("splitter")
             .relative()
-            .flex_none()
-            .flex_shrink_0()
             .w(px(1.0))
+            .mx_1()
             .h_full()
             .bg(rgb(0x2a2a2a))
             .child(
                 div()
                     .id("splitter-handle")
                     .absolute()
-                    .left(px(-6.0))
+                    .left_neg_0p5()
                     .top_0()
                     .bottom_0()
-                    .w(px(12.0))
+                    .w_1()
                     .cursor_col_resize()
                     .block_mouse_except_scroll()
-                    .when(active, |style| style.bg(rgb(0x60a5fa)).w(px(14.0)))
-                    .when(!active, |style| style.bg(rgba(0x00000000)).w(px(12.0)))
+                    .when(active, |style| style.bg(rgb(0x60a5fa)))
+                    .when(!active, |style| style.bg(rgba(0x00000000)))
                     .on_hover({
                         let hovered = hovered.clone();
                         move |&is_hovered, _, cx| {

@@ -64,7 +64,7 @@ impl AppRoot {
         let config = initial_config.clone();
         let state = cx.new(|cx| AppState::new(cx, config_manager));
         Self {
-            sidebar: cx.new(|cx| Sidebar::new(cx)),
+            sidebar: cx.new(|cx| Sidebar::new(window, cx)),
             tabs: cx.new(|cx| TabBar::new(cx)),
             terminal: cx.new(|cx| TerminalView::new(window, cx, state.clone())),
             appbar: cx.new(|cx| AppBar::new(cx)),
