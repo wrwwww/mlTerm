@@ -6,7 +6,7 @@ use log::{debug, info};
 use std::sync::Arc;
 
 use crate::{
-    app::config::{AppConfig, ConfigManager},
+    app::config::ConfigManager,
     models::{SshModels, layout_model::LayoutModel},
     ui::{
         components::splitter::{Splitter, SplitterDragHandle},
@@ -39,24 +39,12 @@ pub struct AppRoot {
     layout_model: Entity<LayoutModel>,
 }
 pub struct AppState {
-    pub layout: LayoutState,
-    pub sidebar: SidebarState,
     pub config_manager: ConfigManager,
 }
 
 impl AppState {
     pub fn new(cx: &mut Context<'_, AppState>, config_manager: ConfigManager) -> Self {
-        Self {
-            config_manager,
-            layout: LayoutState {
-                sidebar_width: 240.0,
-                splitter_position: 0.0,
-            },
-            sidebar: SidebarState {
-                collapsed: false,
-                active_session: None,
-            },
-        }
+        Self { config_manager }
     }
 }
 impl AppRoot {
@@ -82,10 +70,14 @@ impl AppRoot {
 
 impl Render for AppRoot {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        let layout = self.layout_model.read(cx);
+
+        let sidebar_width = if layout.sidebar_collapsed {
+            0.
+        } else {
+            layout.sidebar_width
+        };
         let dialog_layer = Root::render_dialog_layer(window, cx);
-        let sidebar_width = self.state.read(cx).layout.sidebar_width;
-        let drag_state = self.state.clone();
-        let drop_state = self.state.clone();
 
         div()
             .size_full()
@@ -101,30 +93,27 @@ impl Render for AppRoot {
                     .flex_row()
                     .on_drag_move::<SplitterDragHandle>({
                         let state = self.layout_model.clone();
-                        move |event, _window, app| {
+                        move |event, _, cx| {
                             state.update(cx, |state, cx| {
-                                state.layout.sidebar_width = (event.event.position.x.as_f32()
+                                state.sidebar_width = (event.event.position.x.as_f32()
                                     - event.bounds.left().as_f32())
                                 .clamp(180., 560.);
 
                                 cx.notify();
                             });
-
-                            let new_width = (event.event.position.x.as_f32()
-                                - event.bounds.left().as_f32())
-                            .clamp(180.0, 560.0);
-
-                            drag_state.update(app, |app_state, cx| {
-                                app_state.layout.sidebar_width = new_width;
-                                cx.notify();
-                            });
                         }
                     })
-                    .on_drop::<SplitterDragHandle>(move |_, _window, app| {
-                        drop_state.update(app, |app_state, cx| {
-                            app_state.layout.splitter_position = app_state.layout.sidebar_width;
-                            cx.notify();
-                        });
+                    .on_drop::<SplitterDragHandle>({
+                        let state = self.layout_model.clone();
+
+                        move |_, _, cx| {
+                            state.update(cx, |state, cx| {
+                                state.dragging_splitter = false;
+                                cx.notify();
+                            });
+
+                            cx.new(|_| Empty);
+                        }
                     })
                     .child(
                         div()

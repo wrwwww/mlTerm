@@ -22,9 +22,14 @@ impl Splitter {
 
 impl Render for Splitter {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        // if self.layout_model.read(cx).dragging_splitter && !window.on_mouse_event(MouseButton::Left)
+        // {
+        //     dragging = false;
+        // }
         let active = *self.hovered.read(cx) || self.layout_model.read(cx).dragging_splitter;
 
         div()
+            .on
             .id("splitter")
             .relative()
             .w(px(1.0))
@@ -50,6 +55,7 @@ impl Render for Splitter {
                         move |&is_hovered, _, cx| {
                             state.update(cx, |t, cx| {
                                 *t = is_hovered;
+                                cx.notify();
                             })
                             // hovered.write(cx, is_hovered);
                         }
@@ -57,19 +63,11 @@ impl Render for Splitter {
                     .on_drag(SplitterDragHandle, {
                         let state = self.layout_model.clone();
                         move |_, _, _, cx| {
-                            // dragging.write(cx, true);
-                            // cx.new(|_| Empty)
                             state.update(cx, |state, cx| {
-                                state.dragging_bottom_splitter = true;
+                                state.dragging_splitter = true;
                                 cx.notify();
                             });
                             cx.new(|_| Empty)
-                        }
-                    })
-                    .on_drop::<SplitterDragHandle>({
-                        // let dragging = dragging.clone();
-                        move |_, _, cx| {
-                            // dragging.write(cx, false);
                         }
                     }),
             )
