@@ -5,7 +5,7 @@ use gpui::*;
 use gpui_component::{Root, TitleBar};
 use log::info;
 
-use crate::{app::config::ConfigManager, ui::window::main_window::AppRoot};
+use crate::{app::config::ConfigManager, ui::window::index::AppRoot};
 /// Application - 程序的生命周期管理者
 ///
 /// 职责：

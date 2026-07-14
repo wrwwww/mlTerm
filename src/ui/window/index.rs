@@ -1,36 +1,27 @@
 use gpui::*;
 
-use anyhow::Result;
 use gpui_component::Root;
-use log::{debug, info};
-use std::sync::Arc;
 
 use crate::{
     app::config::ConfigManager,
     models::{SshModels, layout_model::LayoutModel},
-    terminal::session_manager::SessionViewManager,
+    state::{
+        app_state::AppState, session_manager::SessionManager, terminal_manager::TerminalManager,
+    },
     ui::{
         components::splitter::{Splitter, SplitterDragHandle},
-        terminal::terminal_view::TerminalView,
         widgets::TabBar,
-        window::{side_bar::Sidebar, status_bar::AppBar, title_bar::AppMenuBar},
+        window::{
+            side_bar::Sidebar, status_bar::AppBar, terminal_area::TerminalArea,
+            title_bar::AppMenuBar,
+        },
     },
 };
-
-pub struct LayoutState {
-    pub sidebar_width: f32,
-    pub splitter_position: f32,
-}
-
-pub struct SidebarState {
-    pub collapsed: bool,
-    pub active_session: Option<String>,
-}
 
 pub struct AppRoot {
     sidebar: Entity<Sidebar>,
     tabs: Entity<TabBar>,
-    terminal: Entity<TerminalView>,
+    terminal: Entity<TerminalArea>,
     appbar: Entity<AppBar>,
     menus: Entity<AppMenuBar>,
     splitter: Entity<Splitter>,
@@ -39,28 +30,20 @@ pub struct AppRoot {
     ssh_model: Entity<SshModels>,
     layout_model: Entity<LayoutModel>,
 }
-pub struct AppState {
-    pub config_manager: ConfigManager,
-}
 
-impl AppState {
-    pub fn new(cx: &mut Context<'_, AppState>, config_manager: ConfigManager) -> Self {
-        Self { config_manager }
-    }
-}
 impl AppRoot {
     pub fn new(window: &mut Window, cx: &mut App, config_manager: ConfigManager) -> Self {
         let initial_config = config_manager.get_config();
         let config = initial_config.clone();
         let state = cx.new(|cx| AppState::new(cx, config_manager));
         let layout_model = cx.new(|cx| LayoutModel::default());
-        let session_view_manager = cx.new(|cx| SessionViewManager::new());
+        let session_manager = cx.new(|cx| SessionManager::new());
+        let terminal_manager = cx.new(|cx| TerminalManager::new(session_manager));
         Self {
-            sidebar: cx.new(|cx| Sidebar::new(window, cx, session_view_manager.clone())),
+            sidebar: cx.new(|cx| Sidebar::new(window, cx, terminal_manager.clone())),
             tabs: cx.new(|cx| TabBar::new(cx)),
-            terminal: cx.new(|cx| {
-                TerminalView::new(window, cx, state.clone(), session_view_manager.clone())
-            }),
+            terminal: cx
+                .new(|cx| TerminalArea::new(window, cx, state.clone(), terminal_manager.clone())),
             appbar: cx.new(|cx| AppBar::new(cx)),
             ssh_model: cx.new(|cx| SshModels::new(cx)),
             state,
@@ -88,7 +71,7 @@ impl Render for AppRoot {
             .flex()
             .flex_col()
             .child(self.appbar.clone())
-            .child(div().h_10().w_full().child(self.menus.clone()))
+            // .child(div().h_10().w_full().child(self.menus.clone()))
             .child(
                 div()
                     .w_full()

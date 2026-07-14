@@ -1,5 +1,4 @@
 use log::info;
-mod actions;
 mod app;
 mod events;
 mod models;
@@ -10,7 +9,6 @@ mod state;
 mod terminal;
 pub mod ui;
 mod utils;
-mod workspace;
 use app::*;
 
 fn main() -> anyhow::Result<()> {

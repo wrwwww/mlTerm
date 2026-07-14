@@ -8,46 +8,54 @@ use gpui_component::{
 };
 
 use crate::{
-    app::config::ConfigManager,
-    terminal::session_manager::SessionViewManager,
-    ui::{dialogs::UserDialogView, window::main_window::AppState},
+    state::{
+        app_state::AppState,
+        terminal_manager::{self, TerminalManager},
+    },
+    ui::dialogs::UserDialogView,
 };
 
-pub struct TerminalView {
+pub struct TerminalArea {
     hostname: Entity<InputState>,
     port: Entity<InputState>,
     lable: Entity<InputState>,
     config: Entity<AppState>,
-    session_view_manager: Entity<SessionViewManager>,
+    terminal_manager: Entity<TerminalManager>,
 }
-impl TerminalView {
+impl TerminalArea {
     pub fn new(
         window: &mut Window,
         cx: &mut Context<Self>,
         config_manager: Entity<AppState>,
-        session_view_manager: Entity<SessionViewManager>,
+        terminal_manager: Entity<TerminalManager>,
     ) -> Self {
         Self {
             hostname: cx.new(|cx| InputState::new(window, cx)),
             port: cx.new(|cx| InputState::new(window, cx)),
             lable: cx.new(|cx| InputState::new(window, cx)),
-            session_view_manager,
+            terminal_manager,
             config: config_manager,
         }
     }
 }
-impl Render for TerminalView {
+impl Render for TerminalArea {
     fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         // let view = cx.entity();
         let config = self.config.read(cx).config_manager.current.theme.font_size;
-        let list = self.session_view_manager.read(cx).clone();
+        let list = self.terminal_manager.read(cx).session_manager.read(cx);
+
         div()
-            .child(div().h_8().w_full().flex().flex_row().children(
-                list.sessions.iter().enumerate().map(|(idx, session)| {
-                    let label = (*session).label.clone();
-                    div().child(label)
-                }),
-            ))
+            .child(
+                div().h_8().w_full().flex().flex_row().children(
+                    list.sessions
+                        .iter()
+                        .enumerate()
+                        .map(|(_idx, (_sesssion_id, session))| {
+                            let label = (*session).name.clone();
+                            div().child(label)
+                        }),
+                ),
+            )
             .child(
                 Button::new("")
                     .label("label")

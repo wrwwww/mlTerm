@@ -3,9 +3,9 @@ pub mod application;
 mod bootstrap;
 mod commands;
 pub mod config;
+pub mod event_bus;
 mod logger;
 mod resources;
-mod settings;
 
 pub fn initialize() -> anyhow::Result<()> {
     self::logger::init_logger()?;

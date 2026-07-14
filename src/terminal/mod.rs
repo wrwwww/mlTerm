@@ -3,6 +3,6 @@ mod parser;
 mod pty;
 mod renderer;
 mod search;
-mod session;
-pub mod session_manager;
+pub mod session;
+
 mod shell;
