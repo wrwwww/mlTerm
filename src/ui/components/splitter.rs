@@ -22,20 +22,15 @@ impl Splitter {
 
 impl Render for Splitter {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
-        // if self.layout_model.read(cx).dragging_splitter && !window.on_mouse_event(MouseButton::Left)
-        // {
-        //     dragging = false;
-        // }
         let active = *self.hovered.read(cx) || self.layout_model.read(cx).dragging_splitter;
 
         div()
-            .on
             .id("splitter")
             .relative()
             .w(px(1.0))
             .mx_1()
             .h_full()
-            .bg(rgb(0x2a2a2a))
+            .bg(rgba(0x0000001A))
             .child(
                 div()
                     .id("splitter-handle")
@@ -48,16 +43,13 @@ impl Render for Splitter {
                     .cursor_col_resize()
                     .block_mouse_except_scroll()
                     .when(active, |style| style.bg(rgb(0x60a5fa)))
-                    // .when(!active, |style| style.bg(rgba(0x00000000)))
                     .on_hover({
-                        // let hovered = hovered.clone();
                         let state = self.hovered.clone();
                         move |&is_hovered, _, cx| {
                             state.update(cx, |t, cx| {
                                 *t = is_hovered;
                                 cx.notify();
                             })
-                            // hovered.write(cx, is_hovered);
                         }
                     })
                     .on_drag(SplitterDragHandle, {

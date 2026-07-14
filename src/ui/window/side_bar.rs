@@ -1,13 +1,15 @@
 use gpui::*;
 use log::info;
 
+use crate::terminal::session_manager::SessionViewManager;
+
 pub trait Session {
     fn get_label(&self) -> SharedString;
     fn get_hostname(&self) -> SharedString;
 }
 
 pub struct SessionManager {
-    sessions: Vec<Box<dyn Session>>,
+    pub(crate) sessions: Vec<Box<dyn Session>>,
     selected_index: Option<usize>,
 }
 
@@ -58,10 +60,15 @@ impl Session for SshSession {
 
 pub struct Sidebar {
     manager: Entity<SessionManager>,
+    view_manager: Entity<SessionViewManager>,
 }
 
 impl Sidebar {
-    pub fn new(window: &mut Window, cx: &mut Context<Self>) -> Self {
+    pub fn new(
+        window: &mut Window,
+        cx: &mut Context<Self>,
+        view_manager: Entity<SessionViewManager>,
+    ) -> Self {
         let manager = cx.new(|_cx| {
             let mut manager = SessionManager::new();
             manager.insert(SshSession::new("192.168.1.1", "Server 1"));
@@ -74,7 +81,10 @@ impl Sidebar {
             manager
         });
 
-        Self { manager }
+        Self {
+            manager,
+            view_manager,
+        }
     }
 }
 
@@ -100,6 +110,7 @@ impl Render for Sidebar {
             .children(sessions.iter().enumerate().map(|(index, session)| {
                 let is_selected = Some(index) == manager.selected_index;
                 let label = session.get_label();
+
                 let hostname = session.get_hostname();
 
                 div()
@@ -107,6 +118,7 @@ impl Render for Sidebar {
                     .h(px(30.0))
                     .px(px(8.0))
                     .py(px(4.0))
+                    .overflow_hidden()
                     .flex()
                     .items_center()
                     .gap(px(8.0))
@@ -115,6 +127,22 @@ impl Render for Sidebar {
                     } else {
                         rgb(0x252525)
                     })
+                    .on_mouse_down(
+                        MouseButton::Left,
+                        cx.listener({
+                            let label = label.clone();
+                            let session_view_manager = self.view_manager.clone();
+                            move |a, event: &MouseDownEvent, c, cx| {
+                                if (*event).click_count == 2 {
+                                    log::info!("{}", format!("双击了item,label:{}", label));
+                                    session_view_manager.update(cx, |state, cx| {
+                                        state.add(label.clone());
+                                        cx.notify();
+                                    })
+                                }
+                            }
+                        }),
+                    )
                     .hover(|style| style.bg(rgb(0x2d2d2d)))
                     .rounded(px(4.0))
                     .cursor_pointer()

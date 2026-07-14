@@ -7,3 +7,10 @@ pub trait TerminalSession: Send {
 
     fn read(&mut self) -> Option<Vec<u8>>;
 }
+#[derive(Debug, Clone, PartialEq)]
+pub enum SessionState {
+    Disconnected,
+    Connecting,
+    Connected,
+    Error(String),
+}

@@ -4,5 +4,5 @@ mod pty;
 mod renderer;
 mod search;
 mod session;
-mod session_manager;
+pub mod session_manager;
 mod shell;

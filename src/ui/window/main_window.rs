@@ -8,6 +8,7 @@ use std::sync::Arc;
 use crate::{
     app::config::ConfigManager,
     models::{SshModels, layout_model::LayoutModel},
+    terminal::session_manager::SessionViewManager,
     ui::{
         components::splitter::{Splitter, SplitterDragHandle},
         terminal::terminal_view::TerminalView,
@@ -53,10 +54,13 @@ impl AppRoot {
         let config = initial_config.clone();
         let state = cx.new(|cx| AppState::new(cx, config_manager));
         let layout_model = cx.new(|cx| LayoutModel::default());
+        let session_view_manager = cx.new(|cx| SessionViewManager::new());
         Self {
-            sidebar: cx.new(|cx| Sidebar::new(window, cx)),
+            sidebar: cx.new(|cx| Sidebar::new(window, cx, session_view_manager.clone())),
             tabs: cx.new(|cx| TabBar::new(cx)),
-            terminal: cx.new(|cx| TerminalView::new(window, cx, state.clone())),
+            terminal: cx.new(|cx| {
+                TerminalView::new(window, cx, state.clone(), session_view_manager.clone())
+            }),
             appbar: cx.new(|cx| AppBar::new(cx)),
             ssh_model: cx.new(|cx| SshModels::new(cx)),
             state,
