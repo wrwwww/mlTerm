@@ -1,3 +1,5 @@
+use std::sync::mpsc::{Sender, SyncSender};
+
 use gpui::*;
 
 use gpui_component::button::{Button, ButtonVariants};
@@ -5,8 +7,12 @@ use gpui_component::checkbox::Checkbox;
 
 use gpui_component::input::{Input, InputState};
 use gpui_component::label::Label;
+use gpui_component::scroll::ScrollableElement;
 use gpui_component::tab::{Tab, TabBar};
-use gpui_component::{GlobalState, TitleBar, h_flex, v_flex};
+use gpui_component::{GlobalState, TitleBar, WindowExt, h_flex, v_flex};
+
+use crate::state::terminal_manager::TerminalManager;
+use crate::terminal::session::{Session, SessionConfig, SessionId, SessionKind};
 
 // ============================================================================
 // Protocol Configs
@@ -92,19 +98,24 @@ pub struct UserDialogView {
     // appbar: Entity<AppBar>,
     session_name: Entity<InputState>,
 
+    terminal_manager: Entity<TerminalManager>,
     ssh: SshConfig,
     telnet: TelnetConfig,
     serial: SerialConfig,
 }
 
 impl UserDialogView {
-    pub fn new(window: &mut Window, cx: &mut Context<Self>) -> Self {
+    pub fn new(
+        window: &mut Window,
+        cx: &mut Context<Self>,
+        terminal_manager: Entity<TerminalManager>,
+    ) -> Self {
         let session_name =
             cx.new(|cx| InputState::new(window, cx).placeholder("Session Name (optional)"));
 
         Self {
             selected_tab: 0,
-
+            terminal_manager,
             // appbar: cx.new(|cx| AppBar::new(cx)),
             session_name,
 
@@ -182,13 +193,27 @@ impl UserDialogView {
     fn on_connect(&mut self, _window: &mut Window, cx: &mut Context<Self>) {
         // TODO: collect values from InputState and dispatch connection
         println!("Connect clicked — protocol index: {}", self.selected_tab);
+        let session = Session {
+            id: SessionId::new(),
+            name: self.session_name.read(cx).text().to_string(),
+            kind: SessionKind::Ssh,
+            config: SessionConfig {
+                hostname: self.ssh.host.read(cx).text().to_string(),
+            },
+            status: crate::terminal::session::SessionStatus::Connected,
+        };
+        self.terminal_manager.update(cx, |this, cx| {
+            this.new_session(session, cx);
+        });
         cx.notify();
+        _window.remove_window();
     }
 
     fn on_cancel(&mut self, _window: &mut Window, cx: &mut Context<Self>) {
         // TODO: close dialog / remove view
         println!("Cancel clicked");
         cx.notify();
+        _window.remove_window();
     }
 }
 
@@ -209,6 +234,7 @@ impl Render for UserDialogView {
             .child(TitleBar::new().child(div().flex().items_center().gap_3().child("新建会话")))
             .child(
                 v_flex()
+                    .overflow_y_scrollbar()
                     .flex_1()
                     .gap_4()
                     .p_4()

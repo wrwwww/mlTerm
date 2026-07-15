@@ -1,24 +1,30 @@
-use gpui::*;
+use std::sync::mpsc;
 
-use crate::state::terminal_manager::TerminalManager;
+use gpui::*;
+use gpui_component::{
+    Root, TitleBar,
+    button::{Button, ButtonVariants},
+};
+
+use crate::{state::terminal_manager::TerminalManager, ui::dialogs::UserDialogView};
 
 pub struct Sidebar {
-    manager: Entity<TerminalManager>,
+    terminal_manager: Entity<TerminalManager>,
 }
 
 impl Sidebar {
     pub fn new(
         window: &mut Window,
         cx: &mut Context<Self>,
-        manager: Entity<TerminalManager>,
+        terminal_manager: Entity<TerminalManager>,
     ) -> Self {
-        Self { manager }
+        Self { terminal_manager }
     }
 }
 
 impl Render for Sidebar {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
-        let manager = self.manager.read(cx);
+        let manager = self.terminal_manager.read(cx);
         let sessions = &manager.session_manager.read(cx).sessions;
 
         div()
@@ -62,7 +68,7 @@ impl Render for Sidebar {
                             .on_mouse_down(
                                 MouseButton::Left,
                                 cx.listener({
-                                    let session_view_manager = self.manager.clone();
+                                    let session_view_manager = self.terminal_manager.clone();
                                     let session_id = session_id.clone();
                                     let label = label.clone();
                                     move |a, event: &MouseDownEvent, c, cx| {
@@ -118,6 +124,56 @@ impl Render for Sidebar {
                             .into_any()
                     }),
             )
-            .into_any()
+            .child(
+                div()
+                    .w_full()
+                    .h(px(30.0))
+                    .px(px(8.0))
+                    .py(px(4.0))
+                    .overflow_hidden()
+                    .flex()
+                    .items_center()
+                    .gap(px(8.0))
+                    .bg(rgb(0x2d2d2d))
+                    .rounded(px(4.0))
+                    .cursor_pointer()
+                    .child(
+                        Button::new("id")
+                            .text()
+                            .w_full()
+                            .label("新建会话")
+                            .on_click(cx.listener({
+                                let terminal_manager = self.terminal_manager.clone();
+                                move |e, eq, ew, cx| {
+                                    let manager = terminal_manager.clone(); // 关键：在这里克隆
+                                    open_session_config_window(cx, manager);
+                                }
+                            })),
+                    )
+                    .into_any(),
+            )
     }
+}
+
+fn open_session_config_window(cx: &mut App, terminal_manager: Entity<TerminalManager>) {
+    // 使用 cx.on_window_opened 或直接 open_window
+    let bounds = Bounds::centered(None, size(px(800.), px(400.0)), cx);
+
+    cx.spawn(async move |cx| {
+        cx.open_window(
+            WindowOptions {
+                // ⭐ 关键：设置窗口层级为浮动（始终在普通窗口上方）
+                kind: WindowKind::Dialog,
+                window_bounds: Some(WindowBounds::Windowed(bounds)),
+                titlebar: Some(TitleBar::title_bar_options()),
+                ..Default::default()
+            },
+            |window, cx| {
+                let view = cx.new(|cx| UserDialogView::new(window, cx, terminal_manager));
+                cx.new(|cx| Root::new(view, window, cx))
+            },
+        )
+        .expect("Failed to open window");
+    })
+    .detach();
 }

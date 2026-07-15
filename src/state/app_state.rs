@@ -1,6 +1,6 @@
 use gpui::Context;
 
-use crate::app::config::ConfigManager;
+use crate::state::config_manager::ConfigManager;
 
 pub struct AppState {
     pub config_manager: ConfigManager,

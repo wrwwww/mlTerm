@@ -1,21 +1,98 @@
-use std::collections::HashMap;
+use anyhow::Result;
+use std::{
+    collections::HashMap,
+    fs,
+    path::{Path, PathBuf},
+};
 
 use crate::terminal::session::{Session, SessionId};
 
-pub struct SessionManager {
+pub struct SessionManager<R>
+where
+    R: SessionRepository,
+{
     pub sessions: HashMap<SessionId, Session>,
     pub selected_index: Option<usize>,
+    repository: R,
 }
 
-impl SessionManager {
-    pub fn new() -> Self {
+impl<R> SessionManager<R>
+where
+    R: SessionRepository,
+{
+    pub fn new(repository: R) -> Self {
         Self {
+            repository,
             sessions: HashMap::with_capacity(16),
             selected_index: None,
         }
     }
 
-    pub fn insert(&mut self, session: Session) {
-        self.sessions.insert(SessionId::default(), session);
+    pub fn insert(&mut self, session: Session) -> SessionId {
+        let session_id = session.id;
+
+        self.sessions.insert(session_id.clone(), session);
+        self.save().expect("insert session 失败");
+        session_id
+    }
+    pub fn load(&mut self) -> Result<()> {
+        let list = self.repository.load()?;
+
+        self.sessions.clear();
+
+        for session in list {
+            self.sessions.insert(session.id, session);
+        }
+
+        Ok(())
+    }
+
+    pub fn save(&self) -> Result<()> {
+        let sessions: Vec<Session> = self.sessions.values().cloned().collect();
+
+        self.repository.save(&sessions)
+    }
+}
+
+pub trait SessionRepository {
+    fn load(&self) -> Result<Vec<Session>>;
+
+    fn save(&self, sessions: &[Session]) -> Result<()>;
+}
+pub struct JsonSessionStorage {
+    path: PathBuf,
+}
+
+impl JsonSessionStorage {
+    pub fn new(path: impl AsRef<Path>) -> Self {
+        Self {
+            path: path.as_ref().to_path_buf(),
+        }
+    }
+}
+
+impl SessionRepository for JsonSessionStorage {
+    fn load(&self) -> Result<Vec<Session>> {
+        if !self.path.exists() {
+            return Ok(Vec::new());
+        }
+
+        let text = fs::read_to_string(&self.path)?;
+
+        let sessions: Vec<Session> = serde_json::from_str(&text)?;
+
+        Ok(sessions)
+    }
+
+    fn save(&self, sessions: &[Session]) -> Result<()> {
+        if let Some(parent) = self.path.parent() {
+            fs::create_dir_all(parent)?;
+        }
+
+        let json = serde_json::to_string_pretty(sessions)?;
+
+        fs::write(&self.path, json)?;
+
+        Ok(())
     }
 }

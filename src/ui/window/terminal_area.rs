@@ -1,19 +1,7 @@
 use gpui::*;
-use gpui_component::{
-    Root, TitleBar, WindowExt,
-    button::Button,
-    dialog::Dialog,
-    input::{Input, InputState},
-    v_flex,
-};
+use gpui_component::{button::Button, input::InputState};
 
-use crate::{
-    state::{
-        app_state::AppState,
-        terminal_manager::{self, TerminalManager},
-    },
-    ui::dialogs::UserDialogView,
-};
+use crate::state::{app_state::AppState, terminal_manager::TerminalManager};
 
 pub struct TerminalArea {
     hostname: Entity<InputState>,
@@ -56,13 +44,6 @@ impl Render for TerminalArea {
                         }),
                 ),
             )
-            .child(
-                Button::new("")
-                    .label("label")
-                    .on_click(cx.listener(|e, eq, ew, cx| {
-                        open_session_config_window(cx);
-                    })),
-            )
             .child(div().child(config.to_string()))
             .child(
                 Button::new("qew")
@@ -80,26 +61,4 @@ impl Render for TerminalArea {
             )
             .child(div().text_size(px(config)).child(text!("this is text !!!")))
     }
-}
-fn open_session_config_window(cx: &mut App) {
-    // 使用 cx.on_window_opened 或直接 open_window
-
-    let bounds = Bounds::centered(None, size(px(800.), px(400.0)), cx);
-    cx.spawn(async move |cx| {
-        cx.open_window(
-            WindowOptions {
-                // ⭐ 关键：设置窗口层级为浮动（始终在普通窗口上方）
-                kind: WindowKind::Dialog,
-                window_bounds: Some(WindowBounds::Windowed(bounds)),
-                titlebar: Some(TitleBar::title_bar_options()),
-                ..Default::default()
-            },
-            |window, cx| {
-                let view = cx.new(|cx| UserDialogView::new(window, cx));
-                cx.new(|cx| Root::new(view, window, cx))
-            },
-        )
-        .expect("Failed to open window");
-    })
-    .detach();
 }

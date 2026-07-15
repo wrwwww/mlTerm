@@ -1,6 +1,9 @@
-use gpui::{Entity, SharedString};
+use gpui::{Context, Entity, SharedString};
 
-use crate::{state::session_manager::SessionManager, terminal::session::SessionId};
+use crate::{
+    state::session_manager::{JsonSessionStorage, SessionManager},
+    terminal::session::{Session, SessionId},
+};
 
 // 光标位置
 // 滚动缓冲区
@@ -16,17 +19,24 @@ pub struct TerminalTab {
 }
 
 pub struct TerminalManager {
-    pub session_manager: Entity<SessionManager>,
+    pub session_manager: Entity<SessionManager<JsonSessionStorage>>,
     pub tabs: Vec<Box<TerminalTab>>,
     selected_index: Option<usize>,
 }
 impl TerminalManager {
-    pub fn new(session_manager: Entity<SessionManager>) -> Self {
+    pub fn new(
+        session_manager: Entity<SessionManager<JsonSessionStorage>>,
+        cx: &mut Context<'_, TerminalManager>,
+    ) -> Self {
         Self {
             session_manager,
             tabs: Vec::with_capacity(10),
             selected_index: None,
         }
+    }
+    pub fn new_session(&mut self, session: Session, cx: &mut gpui::App) {
+        let session_id = self.session_manager.update(cx, |a, cx| a.insert(session));
+        self.add(cx, session_id);
     }
     // 新增一个会话窗口
     pub fn add(&mut self, cx: &gpui::App, session_id: SessionId) {

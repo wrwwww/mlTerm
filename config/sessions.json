@@ -1,0 +1,26 @@
+[
+  {
+    "id": "a645dc26-2a92-4358-bf9a-45937af0f82b",
+    "name": "1234",
+    "kind": "Ssh",
+    "config": {
+      "hostname": "12341234"
+    }
+  },
+  {
+    "id": "a645dc26-2a92-4358-bf9a-45937af0f822",
+    "name": "1234",
+    "kind": "Ssh",
+    "config": {
+      "hostname": "12341234"
+    }
+  },
+  {
+    "id": "a645dc26-2a92-4358-bf9a-43337af0f822",
+    "name": "1222234",
+    "kind": "Ssh",
+    "config": {
+      "hostname": "12341234"
+    }
+  }
+]

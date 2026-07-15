@@ -3,10 +3,12 @@ use gpui::*;
 use gpui_component::Root;
 
 use crate::{
-    app::config::ConfigManager,
     models::{SshModels, layout_model::LayoutModel},
     state::{
-        app_state::AppState, session_manager::SessionManager, terminal_manager::TerminalManager,
+        app_state::AppState,
+        config_manager::ConfigManager,
+        session_manager::{JsonSessionStorage, SessionManager},
+        terminal_manager::TerminalManager,
     },
     ui::{
         components::splitter::{Splitter, SplitterDragHandle},
@@ -37,8 +39,12 @@ impl AppRoot {
         let config = initial_config.clone();
         let state = cx.new(|cx| AppState::new(cx, config_manager));
         let layout_model = cx.new(|cx| LayoutModel::default());
-        let session_manager = cx.new(|cx| SessionManager::new());
-        let terminal_manager = cx.new(|cx| TerminalManager::new(session_manager));
+        let storage = JsonSessionStorage::new("./config/sessions.json");
+        let session_manager = cx.new(|cx| SessionManager::new(storage));
+        session_manager.update(cx, |this, cx| {
+            this.load().expect("session 加载失败");
+        });
+        let terminal_manager = cx.new(|cx| TerminalManager::new(session_manager, cx));
         Self {
             sidebar: cx.new(|cx| Sidebar::new(window, cx, terminal_manager.clone())),
             tabs: cx.new(|cx| TabBar::new(cx)),
