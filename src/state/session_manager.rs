@@ -1,11 +1,11 @@
+use crate::terminal::session::{Session, SessionId};
 use anyhow::Result;
+use std::result::Result::Ok;
 use std::{
     collections::HashMap,
     fs,
     path::{Path, PathBuf},
 };
-
-use crate::terminal::session::{Session, SessionId};
 
 pub struct SessionManager<R>
 where
@@ -79,9 +79,10 @@ impl SessionRepository for JsonSessionStorage {
 
         let text = fs::read_to_string(&self.path)?;
 
-        let sessions: Vec<Session> = serde_json::from_str(&text)?;
-
-        Ok(sessions)
+        if let Ok(sessions) = serde_json::from_str::<Vec<Session>>(&text) {
+            return Ok(sessions);
+        }
+        Ok(vec![])
     }
 
     fn save(&self, sessions: &[Session]) -> Result<()> {

@@ -55,7 +55,7 @@ pub enum AuthMethod {
 pub struct SessionConfig {
     pub hostname: String,
     pub port: u32,
-    auth_method: AuthMethod,
+    // auth_method: AuthMethod,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, Default)]

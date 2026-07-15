@@ -199,6 +199,7 @@ impl UserDialogView {
             kind: SessionKind::Ssh,
             config: SessionConfig {
                 hostname: self.ssh.host.read(cx).text().to_string(),
+                port: 22,
             },
             status: crate::terminal::session::SessionStatus::Connected,
         };
