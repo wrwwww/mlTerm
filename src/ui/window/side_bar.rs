@@ -5,11 +5,17 @@ use gpui_component::{
     Root, TitleBar,
     button::{Button, ButtonVariants},
 };
+use log::info;
 
-use crate::{state::terminal_manager::TerminalManager, ui::dialogs::UserDialogView};
+use crate::{
+    actor::{ActorSystem, messages::SessionMessage},
+    state::terminal_manager::TerminalManager,
+    ui::dialogs::UserDialogView,
+};
 
 pub struct Sidebar {
     terminal_manager: Entity<TerminalManager>,
+    actor_system: std::sync::Arc<ActorSystem>,
 }
 
 impl Sidebar {
@@ -17,8 +23,12 @@ impl Sidebar {
         window: &mut Window,
         cx: &mut Context<Self>,
         terminal_manager: Entity<TerminalManager>,
+        actor_system: std::sync::Arc<ActorSystem>,
     ) -> Self {
-        Self { terminal_manager }
+        Self {
+            terminal_manager,
+            actor_system,
+        }
     }
 }
 
@@ -69,13 +79,24 @@ impl Render for Sidebar {
                                 MouseButton::Left,
                                 cx.listener({
                                     let session_view_manager = self.terminal_manager.clone();
+                                    let actor_system = self.actor_system.clone();
                                     let session_id = session_id.clone();
                                     let label = label.clone();
                                     move |a, event: &MouseDownEvent, c, cx| {
                                         if (*event).click_count == 2 {
                                             log::info!("{}", format!("双击了item,label:{}", label));
+
                                             session_view_manager.update(cx, |state, cx| {
-                                                state.add(cx, session_id);
+                                                let actor_system = actor_system.clone();
+                                                let session = state.add(cx, session_id).unwrap();
+                                                cx.spawn(async move |_, _| {
+                                                    actor_system
+                                                        .session_actor
+                                                        .notify(SessionMessage::ConnectSSH(session))
+                                                        .await
+                                                        .unwrap();
+                                                })
+                                                .detach();
                                                 cx.notify();
                                             })
                                         }
@@ -85,13 +106,6 @@ impl Render for Sidebar {
                             .hover(|style| style.bg(rgb(0x2d2d2d)))
                             .rounded(px(4.0))
                             .cursor_pointer()
-                            // .on_click(cx.listener(move |this, _event, window, cx| {
-                            //     // 更新选中的索引
-                            //     let mut manager = this.manager.write(cx);
-                            //     manager.selected_index = Some(index);
-                            //     cx.notify(); // 通知 UI 更新
-                            //     info!("Selected session: {}", label);
-                            // }))
                             .child(
                                 div()
                                     .flex()

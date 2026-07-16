@@ -39,7 +39,9 @@ pub enum SessionKind {
 pub enum AuthMethod {
     Password {
         remember: bool,
-        secret_id: Option<String>,
+        // secret_id: Option<String>,
+        username: String,
+        password: String,
     },
 
     PublicKey {
@@ -55,7 +57,7 @@ pub enum AuthMethod {
 pub struct SessionConfig {
     pub hostname: String,
     pub port: u32,
-    // auth_method: AuthMethod,
+    pub auth_method: AuthMethod,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, Default)]

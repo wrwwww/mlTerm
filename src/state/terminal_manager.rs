@@ -1,3 +1,4 @@
+use anyhow::{Ok, bail};
 use gpui::{Context, Entity, SharedString};
 
 use crate::{
@@ -39,14 +40,17 @@ impl TerminalManager {
         self.add(cx, session_id);
     }
     // 新增一个会话窗口
-    pub fn add(&mut self, cx: &gpui::App, session_id: SessionId) {
+    pub fn add(&mut self, cx: &gpui::App, session_id: SessionId) -> anyhow::Result<Session> {
         let sessions = &self.session_manager.read(cx).sessions;
         if let Some(session) = sessions.get(&session_id) {
             self.tabs.push(Box::new(TerminalTab {
                 label: SharedString::new(session.name.clone()),
             }));
             self.selected_index = Some(self.tabs.len() - 1);
+            let value = (*session).clone();
+            return Ok(value);
         }
+        bail!("")
     }
     pub fn close_all() {}
     pub fn close(&mut self, idx: usize) {

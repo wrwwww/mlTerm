@@ -1,5 +1,6 @@
 use gpui::*;
 use gpui_component::{button::Button, input::InputState};
+use gpui_rsx::rsx;
 
 use crate::state::{app_state::AppState, terminal_manager::TerminalManager};
 
@@ -59,6 +60,15 @@ impl Render for TerminalArea {
                         })
                     })),
             )
-            .child(div().text_size(px(config)).child(text!("this is text !!!")))
+            .child(
+                div()
+                    .text_size(px(config))
+                    .child(text!("this is text !!!"))
+                    .child(
+                        rsx! {<button class="px-4 py-2 rounded-md" fontSize={px(config)}>
+                          {"这是rsx的text"}
+                        </button>},
+                    ),
+            )
     }
 }

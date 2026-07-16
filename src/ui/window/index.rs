@@ -1,8 +1,10 @@
 use gpui::*;
 
 use gpui_component::Root;
+use tokio::sync::mpsc::{self, UnboundedReceiver};
 
 use crate::{
+    actor::{ActorSystem, messages::SystemEvent},
     models::{SshModels, layout_model::LayoutModel},
     state::{
         app_state::AppState,
@@ -31,11 +33,21 @@ pub struct AppRoot {
     state: Entity<AppState>,
     ssh_model: Entity<SshModels>,
     layout_model: Entity<LayoutModel>,
+    // ui_tx: mpsc::UnboundedSender<SystemEvent>,
+    // ui_rx: mpsc::UnboundedReceiver<SystemEvent>,
+    actor_system: std::sync::Arc<ActorSystem>,
 }
 
 impl AppRoot {
-    pub fn new(window: &mut Window, cx: &mut App, config_manager: ConfigManager) -> Self {
+    pub fn new(
+        window: &mut Window,
+        cx: &mut App,
+        config_manager: ConfigManager,
+        actor_system: std::sync::Arc<ActorSystem>,
+    ) -> Self {
         let initial_config = config_manager.get_config();
+
+        let (ui_tx, ui_rx) = mpsc::unbounded_channel();
         let config = initial_config.clone();
         let state = cx.new(|cx| AppState::new(cx, config_manager));
         let layout_model = cx.new(|cx| LayoutModel::default());
@@ -45,8 +57,9 @@ impl AppRoot {
             this.load().expect("session 加载失败");
         });
         let terminal_manager = cx.new(|cx| TerminalManager::new(session_manager, cx));
-        Self {
-            sidebar: cx.new(|cx| Sidebar::new(window, cx, terminal_manager.clone())),
+        let mut this = Self {
+            sidebar: cx
+                .new(|cx| Sidebar::new(window, cx, terminal_manager.clone(), actor_system.clone())),
             tabs: cx.new(|cx| TabBar::new(cx)),
             terminal: cx
                 .new(|cx| TerminalArea::new(window, cx, state.clone(), terminal_manager.clone())),
@@ -56,7 +69,47 @@ impl AppRoot {
             menus: cx.new(|cx| AppMenuBar::new(cx)),
             splitter: cx.new(|cx| Splitter::new(cx, layout_model.clone())),
             layout_model,
-            // config: config,
+            actor_system, // ui_tx,
+                          // config: config,
+        };
+        this.spawn_event_loop(cx, ui_rx);
+        this
+    }
+    fn spawn_event_loop(&mut self, cx: &mut App, mut rx: UnboundedReceiver<SystemEvent>) {
+        cx.spawn({
+            // let terminal = terminal.clone();
+            let a = self.layout_model.clone();
+
+            async move |cx| {
+                while let Some(event) = rx.recv().await {
+                    //     terminal.update(cx, |this, cx| {
+                    //         this.lines.push(event);
+                    // self.handle_system_event(event, cx);
+                    //         cx.notify();
+                    //     });
+                }
+            }
+        })
+        .detach();
+    }
+
+    fn handle_system_event(&mut self, event: SystemEvent, cx: &mut Context<Self>) {
+        match event {
+            SystemEvent::Output(data) => {
+                if let Ok(text) = String::from_utf8(data) {
+                    cx.notify();
+                }
+            }
+            SystemEvent::Error(err) => {
+                cx.notify();
+            }
+            SystemEvent::CommandComplete(result) => {
+                cx.notify();
+            }
+            SystemEvent::ClearScreen => {
+                cx.notify();
+            }
+            _ => {}
         }
     }
 }

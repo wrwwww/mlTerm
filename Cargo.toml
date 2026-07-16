@@ -29,6 +29,8 @@ ssh2 = "0.9.6"
 notify = "8.2.0"
 alacritty_terminal = "0.26.0"
 uuid = { version = "1.0", features = ["v4", "serde"] }
+gpui-rsx = "0.6"
+tokio-actors = "0.7.1"
 [build-dependencies]
 
 winresource = "0.1.31"

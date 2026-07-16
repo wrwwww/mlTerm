@@ -1,4 +1,3 @@
-mod actions;
 pub mod application;
 mod bootstrap;
 mod commands;
