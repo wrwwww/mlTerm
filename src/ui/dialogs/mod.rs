@@ -10,6 +10,7 @@ use gpui_component::label::Label;
 use gpui_component::scroll::ScrollableElement;
 use gpui_component::tab::{Tab, TabBar};
 use gpui_component::{GlobalState, TitleBar, WindowExt, h_flex, v_flex};
+use gpui_rsx::rsx;
 
 use crate::state::terminal_manager::TerminalManager;
 use crate::terminal::session::{Session, SessionConfig, SessionId, SessionKind};
@@ -130,25 +131,25 @@ impl UserDialogView {
     // ------------------------------------------------------------------------
 
     fn render_ssh_form(&self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
-        v_flex()
-            .gap_3()
-            .px_4()
-            .py_3()
-            .child(self.labeled_input("Host:", self.ssh.host.clone(), window, cx))
-            .child(self.labeled_input("Port:", self.ssh.port.clone(), window, cx))
-            .child(self.labeled_input("Username:", self.ssh.username.clone(), window, cx))
-            .child(
-                v_flex()
-                    .gap_1()
-                    .child(Label::new("Password:"))
-                    .child(Input::new(&self.ssh.password)),
-            )
-            .child(
-                h_flex()
-                    .gap_2()
-                    .child(Checkbox::new("remember-pw"))
-                    .child(Label::new("Remember password")),
-            )
+        rsx! {
+            <div class="flex flex-col gap-3 px-4 py-3">
+
+                <div class="flex flex-col gap-1">
+                        {self.labeled_input("Host:", self.ssh.host.clone(), window, cx)}
+                        {self.labeled_input("Port:", self.ssh.port.clone(), window, cx)}
+                        {self.labeled_input("Username:", self.ssh.username.clone(), window, cx)}
+                        <div flex gap_1 >
+                            <div>"密码"</div>
+                            <div>{Input::new(&self.ssh.password)}</div>
+                        </div>
+                </div>
+
+                <div class="flex flex-row gap-2 items-center">
+                    {Checkbox::new("remember-pw")}
+                    {Label::new("Remember password")}
+                </div>
+            </div>
+        }
     }
 
     fn render_telnet_form(&self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
@@ -200,6 +201,11 @@ impl UserDialogView {
             config: SessionConfig {
                 hostname: self.ssh.host.read(cx).text().to_string(),
                 port: 22,
+                auth_method: crate::terminal::session::AuthMethod::Password {
+                    remember: true,
+                    username: "".to_string(),
+                    password: "".to_string(),
+                },
             },
             status: crate::terminal::session::SessionStatus::Connected,
         };
@@ -258,7 +264,6 @@ impl Render for UserDialogView {
                             .child(Tab::new().label("Telnet"))
                             .child(Tab::new().label("Serial")),
                     )
-                    .child("Divider::horizontal()")
                     // Protocol-specific form
                     .child(match self.selected_tab {
                         0 => self.render_ssh_form(window, cx).into_any_element(),
@@ -267,7 +272,6 @@ impl Render for UserDialogView {
                         _ => div().into_any_element(),
                     })
                     // Bottom buttons
-                    .child("Divider::horizontal()")
                     .child(
                         h_flex()
                             .justify_end()

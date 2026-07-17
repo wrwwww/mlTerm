@@ -1,5 +1,5 @@
 use ssh2::Channel;
-use tokio::net::{TcpListener, TcpStream};
+use tokio::net::TcpStream;
 use tokio_actors::{Actor, ActorResult};
 
 use crate::terminal::session::Session;
@@ -15,7 +15,10 @@ pub struct SshActor {
 }
 impl SshActor {
     pub fn new(session: Session) -> Self {
-        Self { session: session channel:None}
+        Self {
+            session: session,
+            channel: None,
+        }
     }
 }
 impl Actor for SshActor {
@@ -54,7 +57,7 @@ impl Actor for SshActor {
                 }
                 if sess.authenticated() {
                     let mut channel = sess.channel_session().unwrap();
-                    self.channel=Some(channel);
+                    self.channel = Some(channel);
                 }
 
                 "".to_string()
