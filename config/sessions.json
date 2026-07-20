@@ -1,11 +1,18 @@
 [
   {
-    "id": "a0a1c164-5f55-4e34-b99d-0ebe97b94eb0",
+    "id": "f3471ba1-e9c8-42df-9aaa-ece69dd4bde9",
     "name": "测试",
     "kind": "Ssh",
     "config": {
-      "hostname": "",
-      "port": 22
+      "hostname": "192.168.117.134",
+      "port": 22,
+      "auth_method": {
+        "Password": {
+          "remember": true,
+          "username": "wrw",
+          "password": "1234"
+        }
+      }
     }
   }
 ]

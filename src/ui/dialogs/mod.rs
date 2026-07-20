@@ -140,7 +140,7 @@ impl UserDialogView {
                         {self.labeled_input("Username:", self.ssh.username.clone(), window, cx)}
                         <div flex gap_1 >
                             <div>"密码"</div>
-                            <div>{Input::new(&self.ssh.password)}</div>
+                            {self.labeled_input("password:", self.ssh.password.clone(), window, cx)}
                         </div>
                 </div>
 
@@ -194,17 +194,25 @@ impl UserDialogView {
     fn on_connect(&mut self, _window: &mut Window, cx: &mut Context<Self>) {
         // TODO: collect values from InputState and dispatch connection
         println!("Connect clicked — protocol index: {}", self.selected_tab);
+
         let session = Session {
             id: SessionId::new(),
             name: self.session_name.read(cx).text().to_string(),
             kind: SessionKind::Ssh,
             config: SessionConfig {
                 hostname: self.ssh.host.read(cx).text().to_string(),
-                port: 22,
+                port: self
+                    .ssh
+                    .port
+                    .read(cx)
+                    .value()
+                    .clone()
+                    .parse::<u32>()
+                    .unwrap(),
                 auth_method: crate::terminal::session::AuthMethod::Password {
                     remember: true,
-                    username: "".to_string(),
-                    password: "".to_string(),
+                    username: self.ssh.username.read(cx).value().clone().to_string(),
+                    password: self.ssh.password.read(cx).value().clone().to_string(),
                 },
             },
             status: crate::terminal::session::SessionStatus::Connected,

@@ -10,6 +10,7 @@ use log::info;
 use crate::{
     actor::{ActorSystem, messages::SessionMessage},
     state::terminal_manager::TerminalManager,
+    terminal::session::SessionId,
     ui::dialogs::UserDialogView,
 };
 
@@ -29,6 +30,22 @@ impl Sidebar {
             terminal_manager,
             actor_system,
         }
+    }
+    pub async fn connect(&mut self, sesson_id: SessionId, cx: &App) {
+        let session = self
+            .terminal_manager
+            .read(cx)
+            .session_manager
+            .read(cx)
+            .sessions
+            .get(&sesson_id)
+            .unwrap();
+        let session = (*session).clone();
+        self.actor_system
+            .session_actor
+            .notify(SessionMessage::ConnectSSH(session))
+            .await
+            .unwrap();
     }
 }
 

@@ -1,3 +1,6 @@
+use std::io::Read;
+
+use log::info;
 use ssh2::Channel;
 use tokio::net::TcpStream;
 use tokio_actors::{Actor, ActorResult};
@@ -40,6 +43,7 @@ impl Actor for SshActor {
                 let mut sess = ssh2::Session::new().unwrap();
                 sess.set_tcp_stream(tcp);
                 sess.handshake().unwrap();
+                info!("ssh handshake");
                 match &self.session.config.auth_method {
                     crate::terminal::session::AuthMethod::Password {
                         remember,
@@ -55,9 +59,16 @@ impl Actor for SshActor {
                     crate::terminal::session::AuthMethod::KeyboardInteractive => todo!(),
                     crate::terminal::session::AuthMethod::GssApi => todo!(),
                 }
+
+                info!("ssh get password");
                 if sess.authenticated() {
                     let mut channel = sess.channel_session().unwrap();
+                    let res = channel.exec("ls").unwrap();
+                    let mut s = String::new();
+                    channel.read_to_string(&mut s).unwrap();
                     self.channel = Some(channel);
+                    info!("ssh authenticated");
+                    info!("{}", format!("ssh output:{}", s));
                 }
 
                 "".to_string()
