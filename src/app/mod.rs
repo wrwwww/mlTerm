@@ -1,7 +1,4 @@
 pub mod application;
-mod bootstrap;
-mod commands;
-pub mod event_bus;
 mod logger;
 mod resources;
 

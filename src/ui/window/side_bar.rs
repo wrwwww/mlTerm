@@ -8,15 +8,12 @@ use gpui_component::{
 use log::info;
 
 use crate::{
-    actor::{ActorSystem, messages::SessionMessage},
-    state::terminal_manager::TerminalManager,
-    terminal::session::SessionId,
+    state::terminal_manager::TerminalManager, terminal::session::SessionId,
     ui::dialogs::UserDialogView,
 };
 
 pub struct Sidebar {
     terminal_manager: Entity<TerminalManager>,
-    actor_system: std::sync::Arc<ActorSystem>,
 }
 
 impl Sidebar {
@@ -24,12 +21,8 @@ impl Sidebar {
         window: &mut Window,
         cx: &mut Context<Self>,
         terminal_manager: Entity<TerminalManager>,
-        actor_system: std::sync::Arc<ActorSystem>,
     ) -> Self {
-        Self {
-            terminal_manager,
-            actor_system,
-        }
+        Self { terminal_manager }
     }
     pub async fn connect(&mut self, sesson_id: SessionId, cx: &App) {
         let session = self

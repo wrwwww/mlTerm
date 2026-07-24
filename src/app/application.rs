@@ -3,7 +3,7 @@ use gpui::*;
 use gpui_component::{Root, TitleBar};
 use log::info;
 
-use crate::{actor::ActorSystem, state::config_manager::ConfigManager, ui::window::index::AppRoot};
+use crate::{state::config_manager::ConfigManager, ui::window::index::AppRoot};
 /// Application - 程序的生命周期管理者
 ///
 /// 职责：
@@ -13,17 +13,14 @@ use crate::{actor::ActorSystem, state::config_manager::ConfigManager, ui::window
 /// - 管理会话管理器
 pub struct Application {
     inner: Option<gpui::Application>,
-    actor_system: std::sync::Arc<ActorSystem>,
 }
 
 impl Application {
-    pub fn new(actor_system: std::sync::Arc<ActorSystem>) -> Result<Self> {
+    pub fn new() -> Result<Self> {
         info!("Creating Application...");
 
         let this = Self {
             inner: Some(gpui_platform::application()),
-
-            actor_system,
         };
         Ok(this)
     }
@@ -40,7 +37,6 @@ impl Application {
     pub fn run(&mut self) -> Result<()> {
         info!("Starting event loop...");
         let config_manager = crate::app::application::Application::load_config().unwrap();
-        let actor_system = self.actor_system.clone();
         self.inner.take().map(|e| {
             e.run(move |cx| {
                 gpui_component::init(cx);
@@ -53,9 +49,7 @@ impl Application {
                             ..Default::default()
                         },
                         |window, cx| {
-                            let view = cx.new(|cx| {
-                                AppRoot::new(window, cx, config_manager, actor_system.clone())
-                            });
+                            let view = cx.new(|cx| AppRoot::new(window, cx, config_manager));
                             cx.new(|cx| Root::new(view, window, cx))
                         },
                     )

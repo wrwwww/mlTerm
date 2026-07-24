@@ -4,7 +4,7 @@ use gpui_component::Root;
 use tokio::sync::mpsc::{self, UnboundedReceiver};
 
 use crate::{
-    actor::{ActorSystem, messages::SystemEvent},
+    actor::messages::SystemEvent,
     models::{SshModels, layout_model::LayoutModel},
     state::{
         app_state::AppState,
@@ -35,16 +35,10 @@ pub struct AppRoot {
     layout_model: Entity<LayoutModel>,
     // ui_tx: mpsc::UnboundedSender<SystemEvent>,
     // ui_rx: mpsc::UnboundedReceiver<SystemEvent>,
-    actor_system: std::sync::Arc<ActorSystem>,
 }
 
 impl AppRoot {
-    pub fn new(
-        window: &mut Window,
-        cx: &mut App,
-        config_manager: ConfigManager,
-        actor_system: std::sync::Arc<ActorSystem>,
-    ) -> Self {
+    pub fn new(window: &mut Window, cx: &mut App, config_manager: ConfigManager) -> Self {
         let initial_config = config_manager.get_config();
 
         let (ui_tx, ui_rx) = mpsc::unbounded_channel();
@@ -58,8 +52,7 @@ impl AppRoot {
         });
         let terminal_manager = cx.new(|cx| TerminalManager::new(session_manager, cx));
         let mut this = Self {
-            sidebar: cx
-                .new(|cx| Sidebar::new(window, cx, terminal_manager.clone(), actor_system.clone())),
+            sidebar: cx.new(|cx| Sidebar::new(window, cx, terminal_manager.clone())),
             tabs: cx.new(|cx| TabBar::new(cx)),
             terminal: cx
                 .new(|cx| TerminalArea::new(window, cx, state.clone(), terminal_manager.clone())),
@@ -69,8 +62,8 @@ impl AppRoot {
             menus: cx.new(|cx| AppMenuBar::new(cx)),
             splitter: cx.new(|cx| Splitter::new(cx, layout_model.clone())),
             layout_model,
-            actor_system, // ui_tx,
-                          // config: config,
+            // ui_tx,
+            // config: config,
         };
         this.spawn_event_loop(cx, ui_rx);
         this
@@ -95,21 +88,15 @@ impl AppRoot {
 
     fn handle_system_event(&mut self, event: SystemEvent, cx: &mut Context<Self>) {
         match event {
-            SystemEvent::Output(data) => {
-                if let Ok(text) = String::from_utf8(data) {
-                    cx.notify();
-                }
-            }
-            SystemEvent::Error(err) => {
-                cx.notify();
-            }
-            SystemEvent::CommandComplete(result) => {
-                cx.notify();
-            }
-            SystemEvent::ClearScreen => {
-                cx.notify();
-            }
-            _ => {}
+            SystemEvent::Output { tab_id, bytes } => todo!(),
+            SystemEvent::Status { tab_id, text } => todo!(),
+            SystemEvent::Connected { tab_id } => todo!(),
+            SystemEvent::Error(_) => todo!(),
+            SystemEvent::CommandComplete(_) => todo!(),
+            SystemEvent::TitleUpdate { tab_id, title } => todo!(),
+            SystemEvent::ClearScreen => todo!(),
+            SystemEvent::ProcessStarted(_) => todo!(),
+            SystemEvent::ProcessTerminated => todo!(),
         }
     }
 }
